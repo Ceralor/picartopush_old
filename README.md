@@ -1,14 +1,17 @@
-# README #
+# README
 
 Picartopush is a simple cron-able script for sending push notifications via simplepush to your phone.
 
-### How do I get set up? ###
+### How do I get set up?
 
 Picartopush was written using Python 3.4 and requires the following modules:
+
 * simplepush
 * requests
 * json
 * urllib
+
+Which can be installed with `pip install -r requirements.txt`.
 
 You can set this up in a virtualenv if need be.
 
