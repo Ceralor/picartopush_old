@@ -8,18 +8,11 @@ Picartopush was written using Python 3.4 and requires the following modules:
 * simplepush
 * requests
 * json
+* urllib
 
 You can set this up in a virtualenv if need be.
 
-You also will need to create the following two files in the directory picartopush.py runs in:
+The first time you run `python picartopush.py` it will walk you through configuring it and create required files.
+From there, you can then add running the script to your crontab. I recommend writing a simple shell script to do so, including invoking the virtualenv if required.
 
-* online\_following.json
-* config.json
-
-Config.json is expected to be a standard JSON dictionary-type object containing the following:
-
-* picarto\_bearer: This is the picarto API token you have, requiring the readpriv rights
-* simplepush\_key: This is the unique key associated with your Simplepush app
-* adult: boolean if you want adult streams
-* gaming: boolean if you want gaming streams
-
+Have fun! Report any bugs!
