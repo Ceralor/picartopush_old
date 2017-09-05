@@ -19,9 +19,11 @@ def send_online_following_simplepush(config,online_following,previous_online_fol
         msg = '%s is now streaming%s, check it out! https://picarto.tv/%s' % (channel['name'],nsfw_string,channel['name'])
         simplepush.send(config['simplepush_key'],title,msg)
         print("Sent notification about %s" % (channel['name']))
+
 def make_online_following_file():
     with open("online_following.json","w") as f:
         json.dump({},f)
+
 def setup():
     from urllib.parse import quote_plus as qp
     make_online_following_file()
