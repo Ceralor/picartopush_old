@@ -12,7 +12,6 @@ def get_online_following(config):
     with open("online_following.json","w") as f:
         json.dump([ x['name'] for x in online_following ],f)
     return online_following
-
 def send_online_following_simplepush(config,online_following,previous_online_following):
     for channel in [x for x in online_following if x['name'] not in previous_online_following]:
         nsfw_string = ' (NSFW)' if channel['adult'] else ''
@@ -51,8 +50,7 @@ def setup():
     print("Great! We've defaulted to show adult streams but not gaming. You can change this in config.json later.")
     with open("config.json","w") as f:
         json.dump(config,f)
-
-if __name__ == "__main__":
+def main():
     config = {}
     previous_online_following = []
     try: 
@@ -73,3 +71,6 @@ if __name__ == "__main__":
     for channel in online_following:
         print("%s is online!" % (channel['name']))
     send_online_following_simplepush(config,online_following,previous_online_following)
+if __name__ == "__main__":
+    main()
+
