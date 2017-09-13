@@ -1,6 +1,22 @@
-import requests, json, simplepush
+#!/usr/bin/env python3
+from flask import Flask
+from apscheduler.schedulers.background import BackgroundScheduler
+import requests, json, simplepush, atexit
 
-def get_online_following(config):
+global config, previous_online_following, online_following
+config = {}
+previous_online_following = []
+online_following = {}
+try:
+    with open("config.json") as f:
+        config = json.load(f)
+except:
+    print("File 'config.json' must be present!")
+    print("I'll help you set up now!")
+    setup()
+    exit()
+def get_online_following():
+    global config, previous_online_following, online_following
     headers = {'accept':'application/json','authorization':'Bearer %s' % (config['picarto_bearer'])}
     r = requests.get('https://api.picarto.tv/v1/user',headers=headers)
     following = r.json()['following']
@@ -9,22 +25,24 @@ def get_online_following(config):
     r = requests.get(url,headers=headers)
     online_channels = r.json()
     online_following = [ x for x in online_channels if x['user_id'] in following_ids ]
-    with open("online_following.json","w") as f:
-        json.dump([ x['name'] for x in online_following ],f)
     return online_following
-def send_online_following_simplepush(config,online_following,previous_online_following):
+def send_online_following_simplepush():
+    global config, previous_online_following, online_following
     for channel in [x for x in online_following if x['name'] not in previous_online_following]:
         nsfw_string = ' (NSFW)' if channel['adult'] else ''
         title = 'Picarto user %s online!%s' % (channel['name'],nsfw_string)
         msg = '%s is now streaming%s, check it out! https://picarto.tv/%s' % (channel['name'],nsfw_string,channel['name'])
-        simplepush.send(config['simplepush_key'],title,msg)
-        print("Sent notification about %s" % (channel['name']))
-def make_online_following_file():
-    with open("online_following.json","w") as f:
-        json.dump({},f)
+        if (len(config['simplepush_key']) > 0):
+            simplepush.send(config['simplepush_key'],title,msg)
+        if (len(config['ifttt_key']) > 0):
+            body = { "value1": channel['name'] }
+            url = "https://maker.ifttt.com/trigger/picarto_online/with/key/%s" % (config['ifttt_key'])
+            r = requests.post(url, data=body)
+        if (len(config['ifttt_key']) + len(config['simplepush_key']) > 0): 
+            print("Sent notification about %s" % (channel['name']))
 def setup():
     from urllib.parse import quote_plus as qp
-    make_online_following_file()
+    #make_online_following_file()
     config = {}
     redirect_uri = "https://puffydrake.com/oauth.php"
     print('First, visit https://oauth.picarto.tv/clients and create a new client named whatever. set the return URI to %s' % (redirect_uri))
@@ -42,35 +60,48 @@ def setup():
         exit()
     access_token = r.json()['access_token']
     config['picarto_bearer'] = access_token
-    print("Great! Now enter your Simplepush API key.")
+    print("Great! Now enter your Simplepush API key or press 'enter' to skip.")
     simplepush_key = input("> ")
     config['simplepush_key'] = simplepush_key
+    print("If you have an IFTTT account, you can connect the Webook channel to make use of it.")
+    print("This will trigger event 'picarto_online' and send the channel name as 'value1'.")
+    print("Enter your IFTTT key for Webook channel, or press enter to skip.")
+    ifttt_key = input("> ")
+    config['ifttt_key'] = ifttt_key
     config["adult"] = True
     config["gaming"] = False
     print("Great! We've defaulted to show adult streams but not gaming. You can change this in config.json later.")
     with open("config.json","w") as f:
         json.dump(config,f)
 def main():
-    config = {}
-    previous_online_following = []
-    try: 
-        with open("config.json") as f:
-            config = json.load(f)
-    except:
-        print("File 'config.json' must be present!")
-        print("I'll help you set up now!")
-        setup()
-        exit()
-    try:
-        with open("online_following.json") as f:
-            previous_online_following = json.load(f)
-    except:
-        make_online_following_file()
-        print("File 'online_following.json' has been created for you.")
-    online_following = get_online_following(config)
+    global config, previous_online_following, online_following
+    previous_online_following = [ x['name'] for x in online_following ]
+    online_following = get_online_following()
     for channel in online_following:
         print("%s is online!" % (channel['name']))
-    send_online_following_simplepush(config,online_following,previous_online_following)
-if __name__ == "__main__":
-    main()
+    send_online_following_simplepush()
+    
+app = Flask(__name__)
 
+cron = BackgroundScheduler(daemon=True)
+cron.start()
+
+def job_function():
+    print("Checking...")
+    main()
+cron.add_job(job_function,'interval',minutes=5,id='my_job_id')
+job_function()
+
+@app.route("/")
+def hello():
+    html = ""
+    #online = get_online_following(config)
+    for user in online_following:
+        html += "<a href=\"https://picarto.tv/%s\">%s</a><br>\n" % (user['name'],user['name'])
+    return html
+
+atexit.register(lambda: cron.shutdown())
+
+if __name__ == '__main__':
+    main()
+    app.run()
