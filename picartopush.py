@@ -90,7 +90,10 @@ def job_function():
     print("Checking...")
     main()
 cron.add_job(job_function,'interval',minutes=5,id='my_job_id')
+<<<<<<< HEAD
 job_function()
+=======
+>>>>>>> c0778aa348b347d7dea73f8ec15e469de24ec851
 
 @app.route("/")
 def hello():
